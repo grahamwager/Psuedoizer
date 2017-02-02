@@ -133,20 +133,26 @@ namespace Pseudo.Globalization
 
             var neutralCache = neutralReader.Cast<DictionaryEntry>().ToDictionary(entry => (string)entry.Key, entry => ConvertToFakeInternationalized((string)entry.Value));
 
+            // Retrieve the full list of localised translation resources
             var neutralFileName = Path.GetFileNameWithoutExtension(fileName);
-            var directory = Path.GetFullPath(fileName);
+            var directory = Path.GetDirectoryName(Path.GetFullPath(fileName));
+            if (directory == null) return;
             var files = Directory.GetFiles(directory, $"{neutralFileName}.*.resx");
+
+            // Update each localised resource file
             foreach (var file in files)
             {
+                // Open the existing file
                 Console.WriteLine($"Updating {file}...");
                 var currentReader = new ResXResourceReader(file);
                 if (!CanGetEnumerator(file, currentReader)) continue;
 
+                // Cache the current entries
                 var currentEntries = currentReader.Cast<DictionaryEntry>()
                     .ToDictionary(entry => (string)entry.Key, entry => (string)entry.Value);
 
+                // Close the reader and delete the file
                 currentReader.Close();
-
                 if (File.Exists(file))
                     File.Delete(file);
 
@@ -170,6 +176,7 @@ namespace Pseudo.Globalization
                     writer.AddResource(missingEntry.Key, missingEntry.Value);
                 }
 
+                // Write out the new file and close
                 writer.Generate();
                 writer.Close();
             }
