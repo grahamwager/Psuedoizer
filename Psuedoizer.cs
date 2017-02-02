@@ -1,23 +1,25 @@
 using System;
+using System.Collections;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Resources;
-using System.IO;
-using System.Collections;
 using System.Text;
-using System.Globalization;
 
 namespace Pseudo.Globalization
 {
     ///Takes an English resource file (resx) and creates an artificial");/
     ///but still readable Euro-like language to exercise your i18n code");
     ///without a formal translation.");
-    class Psuedoizer
+    internal class Psuedoizer
     {
+        private static readonly CultureInfo[] AllCultures = CultureInfo.GetCultures(CultureTypes.SpecificCultures);
+
         /// <summary>
-        /// The main entry point for the application.
+        ///     The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Console.WriteLine("Psuedoizer: Adapted from MSDN BugSlayer 2004-Apr i18n Article.");
             if (args.Length < 2)
@@ -36,60 +38,54 @@ namespace Pseudo.Globalization
                 Console.WriteLine("    Example:");
                 Console.WriteLine("    Psuedoizer.exe . ja-JP");
                 Console.WriteLine("    /b - Include blank resources");
-                System.Environment.Exit(1);
+                Environment.Exit(1);
             }
 
-            string fileNameOrDirectory = args[0];
-            string fileSaveNameOrLangCode = args[1];
-            bool includeBlankResources = (args.Length >= 3 && args[2] == "/b");
+            var fileNameOrDirectory = args[0];
+            var fileSaveNameOrLangCode = args[1];
+            var includeBlankResources = (args.Length >= 3) && (args[2] == "/b");
 
             try
             {
                 if (Directory.Exists(fileNameOrDirectory))
-                {
                     TranslateMultipleFiles(fileNameOrDirectory, fileSaveNameOrLangCode, includeBlankResources);
-                }
                 else
-                {
                     TranslateSingleFile(fileNameOrDirectory, fileSaveNameOrLangCode, includeBlankResources);
-                }
             }
             catch (Exception e)
             {
                 Console.Write(e.ToString());
-                System.Environment.Exit(1);
+                Environment.Exit(1);
             }
         }
 
-        private static readonly CultureInfo[] allCultures = CultureInfo.GetCultures(CultureTypes.SpecificCultures);
         private static void TranslateMultipleFiles(string directory, string langCode, bool includeBlankResources)
         {
             foreach (var file in Directory.GetFiles(directory, "*.resx"))
             {
                 // Check if it's the neutral resource file
                 var fileName = Path.GetFileNameWithoutExtension(file);
-                var extension = Path.GetExtension(fileName).Trim(' ', '.').ToLower();
-                if (string.IsNullOrEmpty(extension) || !allCultures.Any(c => c.Name.ToLower() == extension || c.TwoLetterISOLanguageName.ToLower() == extension))
-                {
-                    TranslateSingleFile(file, string.Format("{0}\\{1}.{2}.resx", directory, fileName, langCode), includeBlankResources);
-                }
+                var extension = Path.GetExtension(fileName)?.Trim(' ', '.').ToLower();
+                if (string.IsNullOrEmpty(extension) ||
+                    !AllCultures.Any(
+                        c => (c.Name.ToLower() == extension) || (c.TwoLetterISOLanguageName.ToLower() == extension)))
+                    TranslateSingleFile(file, $"{directory}\\{fileName}.{langCode}.resx",
+                        includeBlankResources);
             }
 
             foreach (var subDir in Directory.GetDirectories(directory))
-            {
                 TranslateMultipleFiles(subDir, langCode, includeBlankResources);
-            }
         }
 
         private static void TranslateSingleFile(string fileName, string fileSaveName, bool includeBlankResources)
         {
             // Open the input file.
-            ResXResourceReader reader = new ResXResourceReader(fileName);
+            var reader = new ResXResourceReader(fileName);
             try
             {
                 // Get the enumerator.  If this throws an ArguementException
                 // it means the file is not a .RESX file.
-                IDictionaryEnumerator enumerator = reader.GetEnumerator();
+                reader.GetEnumerator();
             }
             catch (ArgumentException ex)
             {
@@ -99,41 +95,29 @@ namespace Pseudo.Globalization
             }
 
             // Allocate the list for this instance.
-            SortedList textResourcesList = new SortedList();
+            var textResourcesList = new SortedList();
 
             // Run through the file looking for only true text related
             // properties and only those with values set.
             foreach (DictionaryEntry dic in reader)
-            {
-                // Only consider this entry if the value is something.
                 if (null != dic.Value)
-                {
-                    // Is this a System.String.
                     if ("System.String" == dic.Value.GetType().ToString())
                     {
-                        String KeyString = dic.Key.ToString();
+                        var keyString = dic.Key.ToString();
 
                         // Make sure the key name does not start with the
                         // "$" or ">>" meta characters and is not an empty
                         // string (or we're explicitly including empty strings).
-                        if ((false == KeyString.StartsWith(">>")) &&
-                            (false == KeyString.StartsWith("$")) &&
-                            (includeBlankResources || "" != dic.Value.ToString()))
-                        {
-                            // We've got a winner.
+                        if ((false == keyString.StartsWith(">>")) &&
+                            (false == keyString.StartsWith("$")) &&
+                            (includeBlankResources || ("" != dic.Value.ToString())))
                             textResourcesList.Add(dic.Key, dic.Value);
-                        }
 
                         // Special case the Windows Form "$this.Text" or
                         // I don't get the form titles.
-                        if (0 == String.Compare(KeyString, "$this.Text"))
-                        {
+                        if (0 == String.CompareOrdinal(keyString, "$this.Text"))
                             textResourcesList.Add(dic.Key, dic.Value);
-                        }
-
                     }
-                }
-            }
 
             // It's entirely possible that there are no text strings in the
             // .ResX file.
@@ -145,17 +129,16 @@ namespace Pseudo.Globalization
                         File.Delete(fileSaveName);
 
                     // Create the new file.
-                    ResXResourceWriter writer =
+                    var writer =
                         new ResXResourceWriter(fileSaveName);
 
                     foreach (DictionaryEntry textdic in textResourcesList)
-                    {
-                        writer.AddResource(textdic.Key.ToString(), Psuedoizer.ConvertToFakeInternationalized(textdic.Value.ToString()));
-                    }
+                        writer.AddResource(textdic.Key.ToString(),
+                            ConvertToFakeInternationalized(textdic.Value.ToString()));
 
                     writer.Generate();
                     writer.Close();
-                    Console.WriteLine(String.Format("{0}: converted {1} text resource(s).", fileName, textResourcesList.Count));
+                    Console.WriteLine("{0}: converted {1} text resource(s).", fileName, textResourcesList.Count);
                 }
             }
             else
@@ -163,27 +146,25 @@ namespace Pseudo.Globalization
                 Console.WriteLine("WARNING: No text resources found in " + fileName);
             }
         }
+
         /// <summary>
-        /// Converts a string to a pseudo internationized string.
+        ///     Converts a string to a pseudo internationized string.
         /// </summary>
         /// <remarks>
-        /// Primarily for latin based languages.  This will need updating to
-        /// work with Eastern languages.
+        ///     Primarily for latin based languages.  This will need updating to
+        ///     work with Eastern languages.
         /// </remarks>
         /// <param name="inputString">
-        /// The string to use as a base.
+        ///     The string to use as a base.
         /// </param>
         /// <returns>
-        /// A longer and twiddled string.
+        ///     A longer and twiddled string.
         /// </returns>
-        public static String ConvertToFakeInternationalized(String inputString)
+        public static string ConvertToFakeInternationalized(string inputString)
         {
-
             //check if the input string is a http or https link... if it is, do not localize
             if (inputString.Contains("http://") || inputString.Contains("https://"))
-            {
                 return inputString;
-            }
 
 
             // Calculate the extra space necessary for pseudo
@@ -191,27 +172,23 @@ namespace Pseudo.Globalization
             // International Software" is that < 10  characters you should grow
             // by 400% while >= 10 characters should grow by 30%.
 
-            int OrigLen = inputString.Length;
-            int PseudoLen = 0;
-            if (OrigLen < 10)
-            {
-                PseudoLen = (OrigLen * 4) + OrigLen;
-            }
+            var origLen = inputString.Length;
+            int pseudoLen;
+            if (origLen < 10)
+                pseudoLen = origLen * 4 + origLen;
             else
-            {
-                PseudoLen = ((int)(OrigLen * 0.3)) + OrigLen;
-            }
+                pseudoLen = (int)(origLen * 0.3) + origLen;
 
-            StringBuilder sb = new StringBuilder(PseudoLen);
+            var sb = new StringBuilder(pseudoLen);
 
             // The pseudo string will always start with a "[" and end
             // with a "]" so you can tell if strings are not built
             // correctly in the UI.
             sb.Append("[");
 
-            bool waitingForEndBrace = false;
-            bool waitingForGreaterThan = false;
-            foreach (Char currChar in inputString)
+            var waitingForEndBrace = false;
+            var waitingForGreaterThan = false;
+            foreach (var currChar in inputString)
             {
                 switch (currChar)
                 {
@@ -400,23 +377,18 @@ namespace Pseudo.Globalization
             }
 
             // Poke on extra text to fill out the string.
-            const String PadStr = " !!!";
-            int PadCount = (PseudoLen - OrigLen - 2) / PadStr.Length;
+            const string PadStr = " !!!";
+            var PadCount = (pseudoLen - origLen - 2) / PadStr.Length;
             if (PadCount < 2)
-            {
                 PadCount = 2;
-            }
 
-            for (int x = 0; x < PadCount; x++)
-            {
+            for (var x = 0; x < PadCount; x++)
                 sb.Append(PadStr);
-            }
 
             // Pop on the trailing "]"
             sb.Append("]");
 
-            return (sb.ToString());
+            return sb.ToString();
         }
     }
-
 }
