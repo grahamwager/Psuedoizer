@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 //
 // General Information about an assembly is controlled through the following 
@@ -7,15 +6,15 @@ using System.Runtime.CompilerServices;
 // associated with an assembly.
 //
 
-[assembly: AssemblyProductAttribute("Psuedoizer")]
-[assembly: AssemblyCompanyAttribute("Scott Hanselman")]
-[assembly: AssemblyTitleAttribute("Psuedoizer Console")]
-[assembly: AssemblyDescriptionAttribute("Scott Hanselman's Pseudoizer")]
-[assembly: AssemblyCopyrightAttribute("Copyright (c) 2011 Scott Hanselman and John Robbins")]
+[assembly: AssemblyProduct("Psuedoizer")]
+[assembly: AssemblyCompany("Kaladel Ltd, Scott Hanselman")]
+[assembly: AssemblyTitle("Psuedoizer Console")]
+[assembly: AssemblyDescription("Kaladel Pseudoizer adapted from Scott Hanselman's Pseudoizer")]
+[assembly: AssemblyCopyright("Copyright (c) 2017 Kaladel Ltd, (c) 2011 Scott Hanselman and John Robbins")]
 
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]		
+[assembly: AssemblyCulture("")]
 
 //
 // Version information for an assembly consists of the following four values:
@@ -28,7 +27,7 @@ using System.Runtime.CompilerServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("0.1.*")]
+[assembly: AssemblyVersion("1.0.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
