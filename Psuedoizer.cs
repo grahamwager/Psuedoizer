@@ -98,6 +98,10 @@ namespace Pseudo.Globalization
                 Console.WriteLine("    Example:");
                 Console.WriteLine("    Psuedoizer.exe . ja-JP");
                 Console.WriteLine("    /b - Include blank resources");
+                Console.WriteLine();
+                Console.WriteLine("Or switch to filler mode, which fills missing translations in languages");
+                Console.WriteLine("with an artificial translation of the neutral resource file:");
+                Console.WriteLine("Psuedoizer.exe Resources.resx /f");
                 Environment.Exit(1);
             }
 
@@ -107,7 +111,9 @@ namespace Pseudo.Globalization
 
             try
             {
-                if (Directory.Exists(fileNameOrDirectory))
+                if (fileSaveNameOrLangCode == "/f")
+                    TranslateFillerMode(fileNameOrDirectory);
+                else if (Directory.Exists(fileNameOrDirectory))
                     TranslateMultipleFiles(fileNameOrDirectory, fileSaveNameOrLangCode, includeBlankResources);
                 else
                     TranslateSingleFile(fileNameOrDirectory, fileSaveNameOrLangCode, includeBlankResources);
@@ -116,6 +122,56 @@ namespace Pseudo.Globalization
             {
                 Console.Write(e.ToString());
                 Environment.Exit(1);
+            }
+        }
+
+        private static void TranslateFillerMode(string fileName)
+        {
+            // Open the input file
+            var neutralReader = new ResXResourceReader(fileName);
+            if (!CanGetEnumerator(fileName, neutralReader)) return;
+
+            var neutralCache = neutralReader.Cast<DictionaryEntry>().ToDictionary(entry => (string)entry.Key, entry => ConvertToFakeInternationalized((string)entry.Value));
+
+            var neutralFileName = Path.GetFileNameWithoutExtension(fileName);
+            var directory = Path.GetFullPath(fileName);
+            var files = Directory.GetFiles(directory, $"{neutralFileName}.*.resx");
+            foreach (var file in files)
+            {
+                Console.WriteLine($"Updating {file}...");
+                var currentReader = new ResXResourceReader(file);
+                if (!CanGetEnumerator(file, currentReader)) continue;
+
+                var currentEntries = currentReader.Cast<DictionaryEntry>()
+                    .ToDictionary(entry => (string)entry.Key, entry => (string)entry.Value);
+
+                currentReader.Close();
+
+                if (File.Exists(file))
+                    File.Delete(file);
+
+                // Create the new file.
+                var writer =
+                    new ResXResourceWriter(file);
+
+                // Copy across existing entries
+                Console.WriteLine($"    ...preserving {currentEntries.Count} translations");
+                foreach (var currentEntry in currentEntries)
+                {
+                    writer.AddResource(currentEntry.Key,
+                        currentEntry.Value);
+                }
+
+                // Add in missing entries
+                var missingEntries = neutralCache.Where(item => !currentEntries.ContainsKey(item.Key)).ToList();
+                Console.WriteLine($"    ...adding {missingEntries.Count} missing translations");
+                foreach (var missingEntry in missingEntries)
+                {
+                    writer.AddResource(missingEntry.Key, missingEntry.Value);
+                }
+
+                writer.Generate();
+                writer.Close();
             }
         }
 
@@ -141,18 +197,7 @@ namespace Pseudo.Globalization
         {
             // Open the input file.
             var reader = new ResXResourceReader(fileName);
-            try
-            {
-                // Get the enumerator.  If this throws an ArguementException
-                // it means the file is not a .RESX file.
-                reader.GetEnumerator();
-            }
-            catch (ArgumentException ex)
-            {
-                Console.WriteLine("WARNING: could not parse " + fileName);
-                Console.WriteLine("         " + ex.Message);
-                return;
-            }
+            if (!CanGetEnumerator(fileName, reader)) return;
 
             // Allocate the list for this instance.
             var textResourcesList = new SortedList();
@@ -204,6 +249,23 @@ namespace Pseudo.Globalization
             {
                 Console.WriteLine("WARNING: No text resources found in " + fileName);
             }
+        }
+
+        private static bool CanGetEnumerator(string fileName, ResXResourceReader reader)
+        {
+            try
+            {
+                // Get the enumerator.  If this throws an ArguementException
+                // it means the file is not a .RESX file.
+                reader.GetEnumerator();
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("WARNING: could not parse " + fileName);
+                Console.WriteLine("         " + ex.Message);
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
