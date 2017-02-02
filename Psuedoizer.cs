@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -14,6 +15,65 @@ namespace Pseudo.Globalization
     internal class Psuedoizer
     {
         private static readonly CultureInfo[] AllCultures = CultureInfo.GetCultures(CultureTypes.SpecificCultures);
+
+        /// <summary>
+        /// Dictionary of mapped characters
+        /// </summary>
+        private static readonly Dictionary<char, char> CharMap = new Dictionary<char, char>
+        {
+            {'A', 'Å'},
+            {'B', 'ß'},
+            {'C', 'C'},
+            {'D', 'Đ'},
+            {'E', 'Ē'},
+            {'F', 'F'},
+            {'G', 'Ğ'},
+            {'H', 'Ħ'},
+            {'I', 'Ĩ'},
+            {'J', 'Ĵ'},
+            {'K', 'Ķ'},
+            {'L', 'Ŀ'},
+            {'M', 'M'},
+            {'N', 'Ń'},
+            {'O', 'Ø'},
+            {'P', 'P'},
+            {'Q', 'Q'},
+            {'R', 'Ŗ'},
+            {'S', 'Ŝ'},
+            {'T', 'Ŧ'},
+            {'U', 'Ů'},
+            {'V', 'V'},
+            {'W', 'Ŵ'},
+            {'X', 'X'},
+            {'Y', 'Ÿ'},
+            {'Z', 'Ż'},
+            {'a', 'ä'},
+            {'b', 'þ'},
+            {'c', 'č'},
+            {'d', 'đ'},
+            {'e', 'ę'},
+            {'f', 'ƒ'},
+            {'g', 'ģ'},
+            {'h', 'ĥ'},
+            {'i', 'į'},
+            {'j', 'ĵ'},
+            {'k', 'ĸ'},
+            {'l', 'ľ'},
+            {'m', 'm'},
+            {'n', 'ŉ'},
+            {'o', 'ő'},
+            {'p', 'p'},
+            {'q', 'q'},
+            {'r', 'ř'},
+            {'s', 'ş'},
+            {'t', 'ŧ'},
+            {'u', 'ū'},
+            {'v', 'v'},
+            {'w', 'ŵ'},
+            {'x', 'χ'},
+            {'y', 'y'},
+            {'z', 'ž'}
+        };
 
         /// <summary>
         ///     The main entry point for the application.
@@ -100,7 +160,7 @@ namespace Pseudo.Globalization
             // Run through the file looking for only true text related
             // properties and only those with values set.
             foreach (DictionaryEntry dic in reader)
-                if (null != dic.Value)
+                if (dic.Value != null)
                     if ("System.String" == dic.Value.GetType().ToString())
                     {
                         var keyString = dic.Key.ToString();
@@ -115,7 +175,7 @@ namespace Pseudo.Globalization
 
                         // Special case the Windows Form "$this.Text" or
                         // I don't get the form titles.
-                        if (0 == String.CompareOrdinal(keyString, "$this.Text"))
+                        if (0 == string.CompareOrdinal(keyString, "$this.Text"))
                             textResourcesList.Add(dic.Key, dic.Value);
                     }
 
@@ -123,23 +183,22 @@ namespace Pseudo.Globalization
             // .ResX file.
             if (textResourcesList.Count > 0)
             {
-                if (null != fileSaveName)
-                {
-                    if (File.Exists(fileSaveName))
-                        File.Delete(fileSaveName);
+                if (fileSaveName == null) return;
 
-                    // Create the new file.
-                    var writer =
-                        new ResXResourceWriter(fileSaveName);
+                if (File.Exists(fileSaveName))
+                    File.Delete(fileSaveName);
 
-                    foreach (DictionaryEntry textdic in textResourcesList)
-                        writer.AddResource(textdic.Key.ToString(),
-                            ConvertToFakeInternationalized(textdic.Value.ToString()));
+                // Create the new file.
+                var writer =
+                    new ResXResourceWriter(fileSaveName);
 
-                    writer.Generate();
-                    writer.Close();
-                    Console.WriteLine("{0}: converted {1} text resource(s).", fileName, textResourcesList.Count);
-                }
+                foreach (DictionaryEntry textdic in textResourcesList)
+                    writer.AddResource(textdic.Key.ToString(),
+                        ConvertToFakeInternationalized(textdic.Value.ToString()));
+
+                writer.Generate();
+                writer.Close();
+                Console.WriteLine("{0}: converted {1} text resource(s).", fileName, textResourcesList.Count);
             }
             else
             {
@@ -175,9 +234,9 @@ namespace Pseudo.Globalization
             var origLen = inputString.Length;
             int pseudoLen;
             if (origLen < 10)
-                pseudoLen = origLen * 4 + origLen;
+                pseudoLen = origLen * 5;
             else
-                pseudoLen = (int)(origLen * 0.3) + origLen;
+                pseudoLen = (int)(origLen * 1.3);
 
             var sb = new StringBuilder(pseudoLen);
 
@@ -210,180 +269,17 @@ namespace Pseudo.Globalization
                     sb.Append(currChar);
                     continue;
                 }
-                switch (currChar)
-                {
-                    case 'A':
-                        sb.Append('Å');
-                        break;
-                    case 'B':
-                        sb.Append('ß');
-                        break;
-                    case 'C':
-                        sb.Append('C');
-                        break;
-                    case 'D':
-                        sb.Append('Đ');
-                        break;
-                    case 'E':
-                        sb.Append('Ē');
-                        break;
-                    case 'F':
-                        sb.Append('F');
-                        break;
-                    case 'G':
-                        sb.Append('Ğ');
-                        break;
-                    case 'H':
-                        sb.Append('Ħ');
-                        break;
-                    case 'I':
-                        sb.Append('Ĩ');
-                        break;
-                    case 'J':
-                        sb.Append('Ĵ');
-                        break;
-                    case 'K':
-                        sb.Append('Ķ');
-                        break;
-                    case 'L':
-                        sb.Append('Ŀ');
-                        break;
-                    case 'M':
-                        sb.Append('M');
-                        break;
-                    case 'N':
-                        sb.Append('Ń');
-                        break;
-                    case 'O':
-                        sb.Append('Ø');
-                        break;
-                    case 'P':
-                        sb.Append('P');
-                        break;
-                    case 'Q':
-                        sb.Append('Q');
-                        break;
-                    case 'R':
-                        sb.Append('Ŗ');
-                        break;
-                    case 'S':
-                        sb.Append('Ŝ');
-                        break;
-                    case 'T':
-                        sb.Append('Ŧ');
-                        break;
-                    case 'U':
-                        sb.Append('Ů');
-                        break;
-                    case 'V':
-                        sb.Append('V');
-                        break;
-                    case 'W':
-                        sb.Append('Ŵ');
-                        break;
-                    case 'X':
-                        sb.Append('X');
-                        break;
-                    case 'Y':
-                        sb.Append('Ÿ');
-                        break;
-                    case 'Z':
-                        sb.Append('Ż');
-                        break;
-
-
-                    case 'a':
-                        sb.Append('ä');
-                        break;
-                    case 'b':
-                        sb.Append('þ');
-                        break;
-                    case 'c':
-                        sb.Append('č');
-                        break;
-                    case 'd':
-                        sb.Append('đ');
-                        break;
-                    case 'e':
-                        sb.Append('ę');
-                        break;
-                    case 'f':
-                        sb.Append('ƒ');
-                        break;
-                    case 'g':
-                        sb.Append('ģ');
-                        break;
-                    case 'h':
-                        sb.Append('ĥ');
-                        break;
-                    case 'i':
-                        sb.Append('į');
-                        break;
-                    case 'j':
-                        sb.Append('ĵ');
-                        break;
-                    case 'k':
-                        sb.Append('ĸ');
-                        break;
-                    case 'l':
-                        sb.Append('ľ');
-                        break;
-                    case 'm':
-                        sb.Append('m');
-                        break;
-                    case 'n':
-                        sb.Append('ŉ');
-                        break;
-                    case 'o':
-                        sb.Append('ő');
-                        break;
-                    case 'p':
-                        sb.Append('p');
-                        break;
-                    case 'q':
-                        sb.Append('q');
-                        break;
-                    case 'r':
-                        sb.Append('ř');
-                        break;
-                    case 's':
-                        sb.Append('ş');
-                        break;
-                    case 't':
-                        sb.Append('ŧ');
-                        break;
-                    case 'u':
-                        sb.Append('ū');
-                        break;
-                    case 'v':
-                        sb.Append('v');
-                        break;
-                    case 'w':
-                        sb.Append('ŵ');
-                        break;
-                    case 'x':
-                        sb.Append('χ');
-                        break;
-                    case 'y':
-                        sb.Append('y');
-                        break;
-                    case 'z':
-                        sb.Append('ž');
-                        break;
-                    default:
-                        sb.Append(currChar);
-                        break;
-                }
+                sb.Append(CharMap.ContainsKey(currChar) ? CharMap[currChar] : currChar);
             }
 
             // Poke on extra text to fill out the string.
-            const string PadStr = " !!!";
-            var PadCount = (pseudoLen - origLen - 2) / PadStr.Length;
-            if (PadCount < 2)
-                PadCount = 2;
+            const string padStr = " !!!";
+            var padCount = (pseudoLen - origLen - 2) / padStr.Length;
+            if (padCount < 2)
+                padCount = 2;
 
-            for (var x = 0; x < PadCount; x++)
-                sb.Append(PadStr);
+            for (var x = 0; x < padCount; x++)
+                sb.Append(padStr);
 
             // Pop on the trailing "]"
             sb.Append("]");
